@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>발표 연습 코치 · 시선</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #ffffff; --ink: #1d2330; --sub: #667085; --line: #e3e6eb;
+    --accent: #2f5bd3; --ok: #1f9d55; --warn: #e08a00; --bad: #d64545; --mute: #8a8f98; --calib: #c9a400;
+    --eye-v: #a23b72; --eye-h: #2e86ab;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif; }
+  header { padding: 18px 20px 6px; max-width: 1180px; margin: 0 auto; }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 4px 0 0; color: var(--sub); font-size: 14px; }
+  main { max-width: 1180px; margin: 0 auto; padding: 12px 16px 40px;
+         display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .card h2 { margin: 0 0 12px; font-size: 15px; color: var(--sub); font-weight: 600; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  input[type=text] { flex: 1; min-width: 200px; padding: 10px 12px; border: 1px solid var(--line);
+                     border-radius: 10px; font-size: 15px; }
+  input[type=number] { width: 70px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+  button { padding: 10px 16px; border: 0; border-radius: 10px; font-size: 15px; font-weight: 600;
+           cursor: pointer; background: var(--accent); color: #fff; }
+  button.secondary { background: #e9edf5; color: var(--ink); }
+  button.stop { background: var(--bad); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .video { margin-top: 12px; border-radius: 12px; overflow: hidden; background: #262b32; aspect-ratio: 4 / 3; }
+  .video img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .msg { margin-top: 8px; font-size: 13px; color: var(--sub); min-height: 18px; }
+  .msg.err { color: var(--bad); }
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700;
+          background: #eef0f3; color: var(--sub); }
+  .pill.ONLINE { background: #e3f5ea; color: var(--ok); }
+  .pill.DISCONNECTED { background: #fde8e8; color: var(--bad); }
+  .pill.CONNECTING { background: #fff4dc; color: var(--warn); }
+  .state { margin: 6px 0 14px; padding: 18px; border-radius: 12px; text-align: center;
+           font-size: 22px; font-weight: 800; color: #fff; background: var(--mute); transition: background .2s; }
+  .state small { display: block; font-size: 13px; font-weight: 500; opacity: .9; margin-top: 4px; }
+  .state.looking { background: var(--ok); } .state.head_updown { background: var(--bad); }
+  .state.head_side { background: var(--warn); } .state.calib { background: var(--calib); }
+  .state.eye_updown { background: var(--eye-v); } .state.eye_side { background: var(--eye-h); }
+  .mini { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: -4px 0 14px; }
+  .mini .stat .v { font-size: 18px; }
+  .mini .stat .k b { font-weight: 700; }
+  .big { font-size: 40px; font-weight: 800; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .stat { background: #f7f8fa; border-radius: 10px; padding: 10px 12px; }
+  .stat .k { font-size: 12px; color: var(--sub); } .stat .v { font-size: 22px; font-weight: 700; }
+  .bar { height: 10px; background: #edf0f4; border-radius: 99px; overflow: hidden; margin-top: 6px; }
+  .bar > div { height: 100%; width: 0; background: var(--ok); transition: width .3s; }
+  details { margin-top: 12px; font-size: 14px; color: var(--sub); }
+  details label { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
+  #result { grid-column: 1 / -1; display: none; }
+  .seg { border-left: 4px solid var(--mute); padding: 8px 12px; margin: 10px 0; background: #fafbfc; border-radius: 0 8px 8px 0; }
+  .seg.head_updown { border-color: var(--bad); } .seg.head_side { border-color: var(--warn); }
+  .seg.eye_updown { border-color: var(--eye-v); } .seg.eye_side { border-color: var(--eye-h); }
+  .seg.looking { border-color: var(--ok); }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 6px;
+         margin-right: 6px; color: #fff; vertical-align: 1px; }
+  .tag.head { background: #5b6472; } .tag.eye { background: var(--eye-v); } .tag.face { background: var(--mute); }
+  .seg b { font-variant-numeric: tabular-nums; }
+  .seg p { margin: 4px 0 0; font-size: 14px; color: var(--sub); }
+  .plot { width: 100%; border: 1px solid var(--line); border-radius: 10px; margin-top: 12px; }
+  .hint { font-size: 13px; color: var(--sub); line-height: 1.6; margin: 0; padding-left: 18px; }
+  .divider { display: flex; align-items: center; gap: 10px; margin: 18px 0 12px; color: var(--sub); font-size: 13px; }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .file-pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px;
+               border: 1px dashed #c9cfd8; border-radius: 10px; font-size: 14px; color: var(--sub); }
+  .file-pick span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-pick label { padding: 6px 10px; border-radius: 8px; background: #e9edf5; color: var(--ink);
+                     font-weight: 600; cursor: pointer; white-space: nowrap; }
+  #file { display: none; }
+  #upBox { display: none; margin-top: 10px; }
+  #upBar { background: var(--accent); }
+  .vwrap { position: relative; display: none; margin: 6px 0 4px; }
+  .video-result { display: block; width: 100%; max-height: 480px; background: #000; border-radius: 10px; }
+  #rCanvas { position: absolute; left: 0; top: 0; pointer-events: none; }
+  .vtools { display: none; font-size: 13px; color: var(--sub); margin: 2px 0 8px; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .vtools label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .legend { display: inline-flex; gap: 10px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+  .seg.clickable { cursor: pointer; }
+  .seg.clickable:hover { background: #f0f3f8; }
+  .seg.clickable b::after { content: "  ▶ 이 구간 보기"; font-size: 12px; font-weight: 600; color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>발표 연습 코치 · 시선 분석</h1>
+  <p>스마트폰 IP Webcam 실시간 영상이나 찍어 둔 영상 파일로 <b>고개 방향</b>과 <b>눈 시선</b>을 함께 보고, 카메라를 얼마나 보는지 알려줍니다.</p>
+</header>
+
+<main>
+  <!-- 왼쪽: 카메라 연결 + 영상 -->
+  <section class="card">
+    <h2>① 카메라 연결 <span id="camPill" class="pill">NOT_CONNECTED</span></h2>
+    <div class="row">
+      <input id="url" type="text" placeholder="http://192.168.0.10:8080  (폰 IP Webcam 화면의 주소)">
+      <button id="connectBtn">연결</button>
+    </div>
+    <div id="camMsg" class="msg"></div>
+    <div class="video"><img id="video" src="/stream.mjpg" alt="실시간 영상"></div>
+  </section>
+
+  <!-- 오른쪽: 연습 컨트롤 + 실시간 상태 -->
+  <section class="card">
+    <h2>② 연습하기</h2>
+    <div id="state" class="state">대기 중<small>카메라 연결 후 시작을 누르세요</small></div>
+    <div class="stats">
+      <div class="stat"><div class="k">카메라 응시율</div><div class="v" id="ratio">-</div>
+        <div class="bar"><div id="ratioBar"></div></div></div>
+      <div class="stat"><div class="k">연습 시간</div><div class="v" id="elapsed">0:00</div></div>
+    </div>
+    <div class="mini">
+      <div class="stat"><div class="k">고개 정면</div><div class="v" id="headRatio">-</div></div>
+      <div class="stat"><div class="k">눈 맞춤</div><div class="v" id="eyeRatio">-</div></div>
+    </div>
+    <div class="row">
+      <button id="startBtn" disabled>시작</button>
+      <button id="stopBtn" class="stop" disabled>종료하고 결과 보기</button>
+    </div>
+    <div id="sessMsg" class="msg"></div>
+
+    <div class="divider">또는 찍어 둔 영상으로</div>
+    <div class="row">
+      <div class="file-pick">
+        <span id="fileName">선택한 영상 없음</span>
+        <label for="file">영상 선택</label>
+        <input id="file" type="file" accept="video/*,.mp4,.mov,.m4v,.avi,.mkv,.webm">
+      </div>
+      <button id="uploadBtn" disabled>올려서 분석</button>
+    </div>
+    <div id="upBox">
+      <div class="bar"><div id="upBar"></div></div>
+    </div>
+    <div id="upMsg" class="msg"></div>
+
+    <details>
+      <summary>판정 기준 설정</summary>
+      <label>처음 기준 잡는 시간(초) <input id="calib" type="number" value="3" min="1" max="10" step="1"></label>
+      <label>고개 좌우 기준(도) <input id="yawTh" type="number" value="20" min="5" max="60" step="1"></label>
+      <label>고개 상하 기준(도) <input id="pitchTh" type="number" value="15" min="5" max="60" step="1"></label>
+      <label>눈동자 좌우 기준 <input id="eyeHTh" type="number" value="0.10" min="0.02" max="0.5" step="0.01"></label>
+      <label>눈동자 상하 기준 <input id="eyeVTh" type="number" value="0.08" min="0.02" max="0.5" step="0.01"></label>
+      <p class="hint" style="padding:0">숫자가 작을수록 엄격해요. 눈동자 기준은 눈 가로 길이 대비 이동량이에요 (0.10 = 눈 폭의 10%).
+        영상 왼쪽 아래 눈 확대 화면의 초록 원이 눈동자를 따라가는지 확인하세요.</p>
+    </details>
+    <details>
+      <summary>사용 방법</summary>
+      <ol class="hint">
+        <li>폰 IP Webcam 앱에서 전면 카메라로 바꾸고 <b>서버 시작</b></li>
+        <li>폰 화면의 주소를 위 칸에 입력하고 <b>연결</b></li>
+        <li><b>시작</b>을 누르고 처음 3초는 폰 카메라를 정면으로 보기</li>
+        <li>발표 연습 후 <b>종료하고 결과 보기</b></li>
+      </ol>
+      <p class="hint" style="padding:0;margin-top:6px">영상 파일로 할 때도 처음 3초는 카메라 렌즈를 정면으로 보고 시작하세요.
+        카메라 연결 없이도 분석할 수 있어요.</p>
+    </details>
+  </section>
+
+  <!-- 아래: 결과 리포트 -->
+  <section id="result" class="card">
+    <h2>③ 연습 결과 <span id="rSource" class="pill"></span></h2>
+    <div class="stats">
+      <div class="stat"><div class="k">카메라 응시율 (고개 + 눈 모두 정면)</div><div class="big" id="rRatio">-</div></div>
+      <div class="stat"><div class="k">연습 시간 · 얼굴 미검출</div><div class="v" id="rTime">-</div></div>
+    </div>
+    <div class="mini">
+      <div class="stat"><div class="k">고개 정면 비율</div><div class="v" id="rHead">-</div></div>
+      <div class="stat"><div class="k">눈 맞춤 비율</div><div class="v" id="rEye">-</div></div>
+    </div>
+    <p id="rOverall" style="font-weight:600;margin:4px 0 8px"></p>
+    <div class="vwrap" id="rWrap">
+      <video id="rVideo" class="video-result" controls preload="metadata" playsinline></video>
+      <canvas id="rCanvas"></canvas>
+    </div>
+    <div class="vtools" id="rTools">
+      <label><input type="checkbox" id="showBoxes" checked> 얼굴·눈 박스 표시</label>
+      <span class="legend">
+        <span><i style="background:var(--ok)"></i>카메라 응시</span>
+        <span><i style="background:var(--bad)"></i>고개 위·아래</span>
+        <span><i style="background:var(--warn)"></i>고개 옆</span>
+        <span><i style="background:var(--eye-v)"></i>눈 위·아래</span>
+        <span><i style="background:var(--eye-h)"></i>눈 옆</span>
+      </span>
+    </div>
+    <div id="rSegs"></div>
+    <img id="rPlot" class="plot" alt="시간별 시선 각도 그래프">
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const STATE_LABEL = {
+  idle: ["대기 중", "시작을 누르면 연습이 시작됩니다"],
+  calib: ["기준 잡는 중", "카메라를 정면으로 바라봐 주세요"],
+  looking: ["카메라를 보고 있어요", "고개와 눈 모두 좋아요"],
+  head_updown: ["고개가 위·아래로 향했어요", "고개를 들어 카메라를 봐 주세요"],
+  head_side: ["고개가 옆으로 돌아갔어요", "얼굴을 카메라 쪽으로 돌려 주세요"],
+  eye_updown: ["눈만 위·아래를 보고 있어요", "고개는 좋아요. 눈을 카메라 렌즈로!"],
+  eye_side: ["눈만 옆을 보고 있어요", "고개는 좋아요. 눈을 카메라 렌즈로!"],
+  no_face: ["얼굴이 안 보여요", "화면 안으로 들어와 주세요"],
+};
+const KIND_TAG = {
+  head_updown: ["head", "고개"], head_side: ["head", "고개"],
+  eye_updown: ["eye", "눈"], eye_side: ["eye", "눈"], no_face: ["face", "얼굴"],
+};
+const pct = (v) => (v == null ? "-" : `${Math.round(v)}%`);
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "요청 실패");
+  return data;
+}
+
+function setMsg(el, text, isErr) { el.textContent = text || ""; el.classList.toggle("err", !!isErr); }
+
+// 지난번에 입력한 주소 기억 (브라우저에만 저장)
+try { const saved = localStorage.getItem("ipwebcam_url"); if (saved) $("url").value = saved; } catch (e) {}
+
+$("connectBtn").onclick = async () => {
+  const url = $("url").value.trim();
+  if (!url) return setMsg($("camMsg"), "주소를 입력하세요.", true);
+  try {
+    const r = await api("/api/camera", { url });
+    try { localStorage.setItem("ipwebcam_url", url); } catch (e) {}
+    setMsg($("camMsg"), `연결 시도: ${r.url}`);
+  } catch (e) { setMsg($("camMsg"), e.message, true); }
+};
+$("url").addEventListener("keydown", (e) => { if (e.key === "Enter") $("connectBtn").click(); });
+
+// 판정 기준 (실시간 연습·영상 파일 공용)
+const getSettings = () => ({
+  calib_sec: Number($("calib").value), yaw_th: Number($("yawTh").value), pitch_th: Number($("pitchTh").value),
+  eye_h_th: Number($("eyeHTh").value), eye_v_th: Number($("eyeVTh").value),
+});
+
+$("startBtn").onclick = async () => {
+  try {
+    await api("/api/session/start", getSettings());
+    setMsg($("sessMsg"), "");
+    $("result").style.display = "none";
+  } catch (e) { setMsg($("sessMsg"), e.message, true); }
+};
+
+$("stopBtn").onclick = async () => {
+  $("stopBtn").disabled = true;
+  setMsg($("sessMsg"), "분석 중...");
+  try { showResult(await api("/api/session/stop")); setMsg($("sessMsg"), ""); }
+  catch (e) { setMsg($("sessMsg"), e.message, true); }
+};
+
+// ── 영상 파일 올리기 ─────────────────────────────
+let jobRunning = false;
+$("file").onchange = () => {
+  const f = $("file").files[0];
+  $("fileName").textContent = f ? `${f.name} (${(f.size / 1024 / 1024).toFixed(1)}MB)` : "선택한 영상 없음";
+  $("uploadBtn").disabled = !f || jobRunning;
+  setMsg($("upMsg"), "");
+};
+
+function setUpProgress(percent, text, isErr) {
+  $("upBox").style.display = percent == null ? "none" : "block";
+  if (percent != null) $("upBar").style.width = `${percent}%`;
+  setMsg($("upMsg"), text, isErr);
+}
+
+// fetch는 올리는 진행률을 알 수 없어서 XMLHttpRequest 사용
+function uploadFile(file) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/upload?" + new URLSearchParams(getSettings()));
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    xhr.setRequestHeader("X-Filename", encodeURIComponent(file.name));
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) setUpProgress(e.loaded / e.total * 100, `올리는 중 ${Math.round(e.loaded / e.total * 100)}%`);
+    };
+    xhr.onload = () => {
+      let data = {};
+      try { data = JSON.parse(xhr.responseText); } catch (e) {}
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+      else reject(new Error(typeof data.detail === "string" ? data.detail : `올리기 실패 (${xhr.status})`));
+    };
+    xhr.onerror = () => reject(new Error("서버에 연결할 수 없습니다."));
+    xhr.send(file);
+  });
+}
+
+$("uploadBtn").onclick = async () => {
+  const f = $("file").files[0];
+  if (!f) return;
+  jobRunning = true;
+  $("uploadBtn").disabled = true;
+  $("result").style.display = "none";
+  setUpProgress(0, "올리는 중 0%");
+  try {
+    await uploadFile(f);
+    pollJob();
+  } catch (e) {
+    jobRunning = false;
+    $("uploadBtn").disabled = false;
+    setUpProgress(null, e.message, true);
+  }
+};
+
+async function pollJob() {
+  let j;
+  try { j = await (await fetch("/api/upload/status")).json(); }
+  catch (e) { setTimeout(pollJob, 1000); return; }
+  if (j.status === "running") {
+    jobRunning = true;
+    $("uploadBtn").disabled = true;
+    setUpProgress(j.progress, `${j.message} ${Math.round(j.progress)}% · ${j.filename}`);
+    setTimeout(pollJob, 500);
+    return;
+  }
+  jobRunning = false;
+  $("uploadBtn").disabled = !$("file").files[0];
+  if (j.status === "done" && j.result) {
+    setUpProgress(100, "분석 완료! 아래 결과를 확인하세요.");
+    showResult(j.result);
+  } else if (j.status === "error") {
+    setUpProgress(null, j.message, true);
+  }
+}
+
+// 페이지를 새로고침해도 분석 중이던 작업은 이어서 표시
+fetch("/api/upload/status").then((r) => r.json()).then((j) => { if (j.status === "running") pollJob(); }).catch(() => {});
+
+function showResult(r) {
+  $("result").style.display = "block";
+  $("rSource").textContent = r.source || "";
+  $("rSource").style.display = r.source ? "inline-block" : "none";
+  const v = $("rVideo");
+  overlay = null;
+  if (r.video_url) {
+    if (!v.src.endsWith(r.video_url)) v.src = r.video_url;
+    $("rWrap").style.display = "block";
+    $("rTools").style.display = r.overlay_url ? "flex" : "none";
+    v.onerror = () => { $("rWrap").style.display = "none"; $("rTools").style.display = "none"; };  // 재생 못 하는 형식이면 숨김
+    if (r.overlay_url) {
+      fetch(r.overlay_url).then((x) => x.json()).then((o) => { overlay = o; drawOverlay(); }).catch(() => {});
+    }
+  } else {
+    v.removeAttribute("src"); v.load();
+    $("rWrap").style.display = "none"; $("rTools").style.display = "none";
+  }
+  clearCanvas();
+  $("rRatio").textContent = `${r.gaze_ratio}%`;
+  $("rTime").textContent = `${mmss(r.total_sec)} · ${r.no_face_ratio}%`;
+  $("rHead").textContent = `${r.head_ratio}%`;
+  $("rEye").textContent = r.eye_ratio == null ? "측정 안 됨" : `${r.eye_ratio}%`;
+  $("rOverall").textContent = r.overall;
+  const box = $("rSegs");
+  box.innerHTML = "";
+  if (!r.segments.length) {
+    box.innerHTML = '<div class="seg looking"><b>시선 이탈 구간 없음</b><p>계속 카메라를 잘 보고 있었어요.</p></div>';
+  }
+  for (const s of r.segments) {
+    const d = document.createElement("div");
+    d.className = `seg ${s.kind}`;
+    const [tagCls, tagText] = KIND_TAG[s.kind] || ["face", ""];
+    const tag = document.createElement("span");
+    tag.className = `tag ${tagCls}`;
+    tag.textContent = tagText;
+    const head = document.createElement("b");
+    head.textContent = `${s.start} ~ ${s.end} (${s.dur}초) · ${s.label}`;
+    const p = document.createElement("p");
+    p.textContent = s.coaching;
+    d.append(tag, head, p);
+    if (r.video_url && s.start_sec != null) {  // 누르면 영상이 그 구간으로 이동
+      d.classList.add("clickable");
+      d.title = "눌러서 이 구간 영상 보기";
+      d.onclick = () => {
+        v.currentTime = Math.max(0, s.start_sec - 1);
+        v.play().catch(() => {});
+        v.scrollIntoView({ behavior: "smooth", block: "center" });
+      };
+    }
+    box.append(d);
+  }
+  if (r.plot_url) { $("rPlot").src = `${r.plot_url}?t=${Date.now()}`; $("rPlot").style.display = "block"; }
+  else $("rPlot").style.display = "none";
+  $("result").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ── 결과 영상 위에 얼굴·눈 박스 그리기 ──────────────────
+// overlay.data 의 각 항목: [시간, 상태번호, 얼굴 x1,y1,x2,y2, (눈 x1,y1,x2,y2, 눈동자 x,y) x 2]  (0~1 비율)
+let overlay = null;
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const BOX_STYLE = {
+  looking: ["--ok", "카메라 응시"], head_updown: ["--bad", "고개 위·아래"], head_side: ["--warn", "고개 옆"],
+  eye_updown: ["--eye-v", "눈만 위·아래"], eye_side: ["--eye-h", "눈만 옆"], no_face: ["--mute", "얼굴 없음"],
+};
+
+function clearCanvas() {
+  const c = $("rCanvas");
+  c.getContext("2d").clearRect(0, 0, c.width, c.height);
+}
+
+function findSample(t) {  // t 이하에서 가장 가까운 항목 (이진 탐색)
+  const d = overlay.data;
+  let lo = 0, hi = d.length - 1, ans = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (d[mid][0] <= t) { ans = mid; lo = mid + 1; } else hi = mid - 1;
+  }
+  return ans >= 0 && t - d[ans][0] < 0.5 ? d[ans] : null;
+}
+
+function drawOverlay() {
+  const v = $("rVideo"), c = $("rCanvas");
+  const dpr = window.devicePixelRatio || 1;
+  const cw = v.clientWidth, ch = v.clientHeight;
+  if (c.width !== Math.round(cw * dpr) || c.height !== Math.round(ch * dpr)) {
+    c.width = Math.round(cw * dpr); c.height = Math.round(ch * dpr);
+    c.style.width = `${cw}px`; c.style.height = `${ch}px`;
+  }
+  const g = c.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, cw, ch);
+  if (!overlay || !$("showBoxes").checked || !v.videoWidth) return;
+  const s = findSample(v.currentTime);
+  if (!s) return;
+
+  // 영상이 실제로 그려진 영역 (위아래/양옆 검은 여백 제외)
+  const k = Math.min(cw / v.videoWidth, ch / v.videoHeight);
+  const vw = v.videoWidth * k, vh = v.videoHeight * k;
+  const ox = (cw - vw) / 2, oy = (ch - vh) / 2;
+  const X = (x) => ox + x * vw, Y = (y) => oy + y * vh;
+
+  const state = overlay.states[s[1]];
+  const [colorVar, label] = BOX_STYLE[state] || BOX_STYLE.no_face;
+  const color = css(colorVar);
+  if (s.length < 6) {  // 얼굴 없음
+    g.font = "bold 14px sans-serif"; g.fillStyle = color;
+    g.fillRect(ox + 8, oy + 8, g.measureText(label).width + 14, 24);
+    g.fillStyle = "#fff"; g.fillText(label, ox + 15, oy + 25);
+    return;
+  }
+  // 얼굴 박스 + 상태 이름
+  const [fx1, fy1, fx2, fy2] = s.slice(2, 6);
+  const pad = (fx2 - fx1) * 0.06;
+  const bx = X(fx1 - pad), by = Y(fy1 - pad * vw / vh), bw = X(fx2 + pad) - bx, bh = Y(fy2 + pad * vw / vh) - by;
+  g.lineWidth = 3; g.strokeStyle = color; g.strokeRect(bx, by, bw, bh);
+  g.font = "bold 13px sans-serif";
+  const tw = g.measureText(label).width + 12, ly = Math.max(by, oy + 22);
+  g.fillStyle = color; g.fillRect(bx, ly - 22, tw, 22);
+  g.fillStyle = "#fff"; g.fillText(label, bx + 6, ly - 6);
+  // 눈 박스 + 눈동자
+  const eyeColor = state.startsWith("eye_") ? color : "rgba(255,255,255,.9)";
+  for (let i = 6; i + 6 <= s.length; i += 6) {
+    const [ex1, ey1, ex2, ey2, ix, iy] = s.slice(i, i + 6);
+    const m = (ex2 - ex1) * 0.15;
+    g.lineWidth = 2; g.strokeStyle = eyeColor;
+    g.strokeRect(X(ex1 - m), Y(ey1) - m * vw, X(ex2 + m) - X(ex1 - m), Y(ey2) - Y(ey1) + 2 * m * vw);
+    g.beginPath(); g.fillStyle = "#22e04a";
+    g.arc(X(ix), Y(iy), Math.max(2.5, (ex2 - ex1) * vw * 0.12), 0, Math.PI * 2); g.fill();
+  }
+}
+
+// 재생 중에는 화면이 바뀔 때마다, 멈췄을 땐 이동·크기 변경 때만 다시 그리기
+(function setupOverlayLoop() {
+  const v = $("rVideo");
+  const tick = () => { drawOverlay(); if (!v.paused && !v.ended) requestAnimationFrame(tick); };
+  v.addEventListener("play", () => requestAnimationFrame(tick));
+  for (const ev of ["seeked", "loadeddata", "pause", "timeupdate"]) v.addEventListener(ev, drawOverlay);
+  window.addEventListener("resize", drawOverlay);
+  $("showBoxes").addEventListener("change", drawOverlay);
+})();
+
+// 상태 주기적 조회
+async function poll() {
+  try {
+    const s = await (await fetch("/api/status")).json();
+    const pill = $("camPill");
+    pill.textContent = s.camera_status; pill.className = `pill ${s.camera_status}`;
+    if (s.camera_status !== "NOT_CONNECTED" || s.message.includes("모델")) {
+      setMsg($("camMsg"), s.message, s.camera_status === "DISCONNECTED" || s.message.includes("모델"));
+    }
+    const key = s.session_active ? s.live_state : "idle";
+    const [title, sub] = STATE_LABEL[key] || STATE_LABEL.idle;
+    const st = $("state");
+    st.className = `state ${key}`;
+    st.innerHTML = "";
+    st.append(title);
+    const small = document.createElement("small");
+    small.textContent = key === "calib" && s.calib_left != null ? `${sub} (${s.calib_left}초)` : sub;
+    st.append(small);
+
+    $("ratio").textContent = pct(s.gaze_ratio);
+    $("headRatio").textContent = pct(s.head_ratio);
+    $("eyeRatio").textContent = s.session_active && s.phase === "live" && s.eye_ratio == null ? "측정 안 됨" : pct(s.eye_ratio);
+    $("ratioBar").style.width = `${s.gaze_ratio || 0}%`;
+    $("ratioBar").style.background = s.gaze_ratio >= 80 ? "var(--ok)" : s.gaze_ratio >= 60 ? "var(--warn)" : "var(--bad)";
+    $("elapsed").textContent = mmss(s.elapsed || 0);
+    $("startBtn").disabled = s.camera_status !== "ONLINE" || s.session_active;
+    $("stopBtn").disabled = !s.session_active;
+    $("startBtn").textContent = s.session_active ? "연습 중" : "시작";
+  } catch (e) { /* 서버 재시작 중일 수 있음 */ }
+  setTimeout(poll, 300);
+}
+poll();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# 가상환경
+.venv/
+# 파이썬 캐시
+__pycache__/
+*.pyc
+# 실행하면 생기는 결과물 (용량 큼, 개인 영상)
+results/
+uploads/
+# 얼굴 모델 (처음 실행할 때 자동 다운로드)
+face_landmarker.task
+# 윈도우 다운로드 꼬리표
+*Zone.Identifier
